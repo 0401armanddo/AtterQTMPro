@@ -1,0 +1,172 @@
+// Átter QTM Pro — Schema do banco de dados
+// Normas: NBR 12655:2022, NBR 5739:2018, NBR 6118:2023
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum PapelUsuario {
+  ADMIN
+  TECNICO
+  VISUALIZADOR
+}
+
+enum StatusObra {
+  ATIVA
+  CONCLUIDA
+  SUSPENSA
+}
+
+enum StatusCP {
+  PENDENTE
+  ENSAIADO
+  REJEITADO
+}
+
+// Tipos de fratura conforme NBR 5739:2018 (Figuras 1 a 6)
+enum TipoFratura {
+  TIPO_I    // Cônica satisfatória
+  TIPO_II   // Cônica com fendilhamento
+  TIPO_III  // Cônica e cisalhamento
+  TIPO_IV   // Cisalhamento
+  TIPO_V    // Colunar com formação de cones em ambas as bases
+  TIPO_VI   // Topo cônico com fendilhamento lateral
+}
+
+// ─── Usuário ──────────────────────────────────────────────────────────────────
+
+model Usuario {
+  id          String       @id @default(cuid())
+  nome        String
+  email       String       @unique
+  senhaHash   String       @map("senha_hash")
+  papel       PapelUsuario @default(TECNICO)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  obras       Obra[]
+  amostras    Amostra[]
+
+  @@map("usuarios")
+}
+
+// ─── Obra ─────────────────────────────────────────────────────────────────────
+
+model Obra {
+  id                  String     @id @default(cuid())
+  nome                String
+  endereco            String?
+  responsavelTecnico  String     @map("responsavel_tecnico")
+  crea                String?    // CREA ou CAU do RT
+  cno                 String?    // Cadastro Nacional de Obras
+  art                 String?    // Número da ART/RRT
+  fckProjeto          Float      @map("fck_projeto") // MPa — fck global da obra
+  status              StatusObra @default(ATIVA)
+  createdAt           DateTime   @default(now()) @map("created_at")
+  updatedAt           DateTime   @updatedAt @map("updated_at")
+
+  responsavelId       String     @map("responsavel_id")
+  responsavel         Usuario    @relation(fields: [responsavelId], references: [id])
+
+  fornecimentos       Fornecimento[]
+
+  @@map("obras")
+}
+
+// ─── Fornecimento (betonada / nota fiscal) ────────────────────────────────────
+
+model Fornecimento {
+  id                  String   @id @default(cuid())
+  obraId              String   @map("obra_id")
+  obra                Obra     @relation(fields: [obraId], references: [id])
+
+  // Identificação
+  notaFiscal          String?  @map("nota_fiscal")
+  dataConcretagem     DateTime @map("data_concretagem")
+  volumeM3            Float    @map("volume_m3")
+
+  // Características do concreto
+  fckProjeto          Float    @map("fck_projeto") // MPa — pode diferir do fck da obra
+  classeAbatimento    String?  @map("classe_abatimento") // Ex: S100, S160 (NBR 7212)
+  brita               String?  // Ex: "Brita 1", "Brita 0"
+  cimento             String?  // Ex: "CP II-F 32"
+  centraConcretagem   String?  @map("central_concretagem")
+
+  // Concreto fresco — NBR 5776 e NBR 9833
+  slumpMedidoMm       Float?   @map("slump_medido_mm")
+  slumpEspecificadoMm Float?   @map("slump_especificado_mm")
+  temperaturaConcC    Float?   @map("temperatura_conc_c")  // °C
+  temperaturaAmbC     Float?   @map("temperatura_amb_c")   // °C
+  massaEspecifica     Float?   @map("massa_especifica")    // kg/m³ — NBR 9833
+  teorAr              Float?   @map("teor_ar")             // % — NBR 9833
+
+  observacoes         String?
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  amostras            Amostra[]
+
+  @@map("fornecimentos")
+}
+
+// ─── Amostra (conjunto de CPs de uma betonada) ───────────────────────────────
+
+model Amostra {
+  id                String   @id @default(cuid())
+  fornecimentoId    String   @map("fornecimento_id")
+  fornecimento      Fornecimento @relation(fields: [fornecimentoId], references: [id])
+
+  numeroAmostra     Int      @map("numero_amostra")
+  dataMoldagem      DateTime @map("data_moldagem")
+  localAplicacao    String   @map("local_aplicacao") // Ex: "Pilar P7 - Pav. 3"
+  responsavelColeta String   @map("responsavel_coleta")
+
+  coletorId         String?  @map("coletor_id")
+  coletor           Usuario? @relation(fields: [coletorId], references: [id])
+
+  observacoes       String?
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  corposDeProva     CorpoDeProva[]
+
+  @@unique([fornecimentoId, numeroAmostra])
+  @@map("amostras")
+}
+
+// ─── Corpo de Prova (CP individual) ──────────────────────────────────────────
+
+model CorpoDeProva {
+  id              String      @id @default(cuid())
+  amostraId       String      @map("amostra_id")
+  amostra         Amostra     @relation(fields: [amostraId], references: [id])
+
+  // Identificação
+  identificacao   String      // Ex: "CP-001-7D"
+  idadeEnsaioDias Int         @map("idade_ensaio_dias") // 7, 14, 28, 56, 91
+
+  // Geometria do CP — NBR 5739:2018 (h/d deve estar entre 1,94 e 2,10)
+  diametroMm      Float?      @map("diametro_mm")
+  alturaMm        Float?      @map("altura_mm")
+  massaG          Float?      @map("massa_g")
+
+  // Resultados do ensaio
+  dataEnsaio      DateTime?   @map("data_ensaio")
+  cargaRupturaKn  Float?      @map("carga_ruptura_kn")
+  resistenciaMpa  Float?      @map("resistencia_mpa") // calculado: fc = (4·F)/(π·D²)
+  tipoFratura     TipoFratura? @map("tipo_fratura")
+
+  status          StatusCP    @default(PENDENTE)
+  observacoes     String?
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  @@map("corpos_de_prova")
+}
