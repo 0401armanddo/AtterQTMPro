@@ -8,13 +8,7 @@ type AmostraUpdateData = Partial<Omit<Amostra, 'id' | 'createdAt'>>
 export function useAmostras(fornecimentoId?: string) {
   return useQuery({
     queryKey: fornecimentoId ? ['amostras', { fornecimentoId }] : ['amostras'],
-    queryFn: async () => {
-      const all = await amostrasService.list()
-      if (fornecimentoId) {
-        return all.filter((a) => a.fornecimentoId === fornecimentoId)
-      }
-      return all
-    },
+    queryFn: () => amostrasService.list(fornecimentoId),
   })
 }
 

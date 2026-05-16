@@ -8,13 +8,7 @@ type CorpoDeProvaUpdateData = Partial<Omit<CorpoDeProva, 'id' | 'createdAt' | 'u
 export function useCorposDeProva(amostraId?: string) {
   return useQuery({
     queryKey: amostraId ? ['corposDeProva', { amostraId }] : ['corposDeProva'],
-    queryFn: async () => {
-      const all = await corposDeProvaService.list()
-      if (amostraId) {
-        return all.filter((cp) => cp.amostraId === amostraId)
-      }
-      return all
-    },
+    queryFn: () => corposDeProvaService.list(amostraId),
   })
 }
 

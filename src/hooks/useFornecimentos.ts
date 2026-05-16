@@ -8,13 +8,7 @@ type FornecimentoUpdateData = Partial<Omit<Fornecimento, 'id' | 'createdAt'>>
 export function useFornecimentos(obraId?: string) {
   return useQuery({
     queryKey: obraId ? ['fornecimentos', { obraId }] : ['fornecimentos'],
-    queryFn: async () => {
-      const all = await fornecimentosService.list()
-      if (obraId) {
-        return all.filter((f) => f.obraId === obraId)
-      }
-      return all
-    },
+    queryFn: () => fornecimentosService.list(obraId),
   })
 }
 

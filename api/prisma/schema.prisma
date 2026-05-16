@@ -1,0 +1,138 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PapelUsuario {
+  ADMIN
+  TECNICO
+  VISUALIZADOR
+}
+
+enum StatusObra {
+  ATIVA
+  CONCLUIDA
+  SUSPENSA
+}
+
+enum StatusCP {
+  PENDENTE
+  ENSAIADO
+  REJEITADO
+}
+
+enum TipoFratura {
+  TIPO_I
+  TIPO_II
+  TIPO_III
+  TIPO_IV
+  TIPO_V
+  TIPO_VI
+}
+
+model Usuario {
+  id        String       @id @default(cuid())
+  nome      String
+  email     String       @unique
+  senhaHash String       @map("senha_hash")
+  papel     PapelUsuario @default(TECNICO)
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  obras    Obra[]
+  amostras Amostra[]
+
+  @@map("usuarios")
+}
+
+model Obra {
+  id                 String     @id @default(cuid())
+  nome               String
+  endereco           String?
+  responsavelTecnico String     @map("responsavel_tecnico")
+  crea               String?
+  cno                String?
+  art                String?
+  fckProjeto         Float      @map("fck_projeto")
+  status             StatusObra @default(ATIVA)
+  responsavelId      String     @map("responsavel_id")
+  responsavel        Usuario    @relation(fields: [responsavelId], references: [id])
+  createdAt          DateTime   @default(now()) @map("created_at")
+  updatedAt          DateTime   @updatedAt @map("updated_at")
+
+  fornecimentos Fornecimento[]
+
+  @@map("obras")
+}
+
+model Fornecimento {
+  id                  String   @id @default(cuid())
+  obraId              String   @map("obra_id")
+  obra                Obra     @relation(fields: [obraId], references: [id], onDelete: Cascade)
+  notaFiscal          String?  @map("nota_fiscal")
+  dataConcretagem     DateTime @map("data_concretagem")
+  volumeM3            Float    @map("volume_m3")
+  fckProjeto          Float    @map("fck_projeto")
+  classeAbatimento    String?  @map("classe_abatimento")
+  brita               String?
+  cimento             String?
+  centraConcretagem   String?  @map("central_concretagem")
+  slumpMedidoMm       Float?   @map("slump_medido_mm")
+  slumpEspecificadoMm Float?   @map("slump_especificado_mm")
+  temperaturaConcC    Float?   @map("temperatura_conc_c")
+  temperaturaAmbC     Float?   @map("temperatura_amb_c")
+  massaEspecifica     Float?   @map("massa_especifica")
+  teorAr              Float?   @map("teor_ar")
+  observacoes         String?
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  amostras Amostra[]
+
+  @@map("fornecimentos")
+}
+
+model Amostra {
+  id                String   @id @default(cuid())
+  fornecimentoId    String   @map("fornecimento_id")
+  fornecimento      Fornecimento @relation(fields: [fornecimentoId], references: [id], onDelete: Cascade)
+  numeroAmostra     Int      @map("numero_amostra")
+  dataMoldagem      DateTime @map("data_moldagem")
+  localAplicacao    String   @map("local_aplicacao")
+  responsavelColeta String   @map("responsavel_coleta")
+  coletorId         String?  @map("coletor_id")
+  coletor           Usuario? @relation(fields: [coletorId], references: [id])
+  observacoes       String?
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  corposDeProva CorpoDeProva[]
+
+  @@unique([fornecimentoId, numeroAmostra])
+  @@map("amostras")
+}
+
+model CorpoDeProva {
+  id              String       @id @default(cuid())
+  amostraId       String       @map("amostra_id")
+  amostra         Amostra      @relation(fields: [amostraId], references: [id], onDelete: Cascade)
+  identificacao   String
+  idadeEnsaioDias Int          @map("idade_ensaio_dias")
+  diametroMm      Float?       @map("diametro_mm")
+  alturaMm        Float?       @map("altura_mm")
+  massaG          Float?       @map("massa_g")
+  dataEnsaio      DateTime?    @map("data_ensaio")
+  cargaRupturaKn  Float?       @map("carga_ruptura_kn")
+  resistenciaMpa  Float?       @map("resistencia_mpa")
+  tipoFratura     TipoFratura? @map("tipo_fratura")
+  status          StatusCP     @default(PENDENTE)
+  observacoes     String?
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+
+  @@map("corpos_de_prova")
+}
