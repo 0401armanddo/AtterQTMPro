@@ -13,6 +13,7 @@ import AmostraDetalhe from '@/pages/Amostras/AmostraDetalhe'
 import RegistrarEnsaio from '@/pages/Ensaios/RegistrarEnsaio'
 import EnsaiosPendentes from '@/pages/Ensaios/Pendentes'
 import Relatorios from '@/pages/Relatorios'
+import LaudoAmostra from '@/pages/Relatorios/LaudoAmostra'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -61,6 +62,7 @@ export default function App() {
 
             {/* Relatórios */}
             <Route path="relatorios" element={<Relatorios />} />
+            <Route path="relatorios/laudo/:obraId/:fornecimentoId/:amostraId" element={<LaudoAmostra />} />
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>

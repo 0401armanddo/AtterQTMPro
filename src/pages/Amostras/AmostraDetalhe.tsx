@@ -75,14 +75,22 @@ export default function AmostraDetalhe() {
           <span>/</span>
           <span className="text-gray-700">Amostra #{amostra.numeroAmostra}</span>
         </div>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <h1 className="text-2xl font-bold text-gray-900">Amostra #{amostra.numeroAmostra}</h1>
-          <button
-            onClick={() => setDeleteAmostraOpen(true)}
-            className="px-3 py-1.5 border border-red-200 text-red-600 text-sm rounded-md hover:bg-red-50"
-          >
-            Excluir
-          </button>
+          <div className="flex gap-2">
+            <Link
+              to={`/relatorios/laudo/${obraId}/${fornecimentoId}/${amostraId}`}
+              className="px-3 py-1.5 border border-blue-300 text-blue-700 text-sm rounded-md hover:bg-blue-50"
+            >
+              Gerar Laudo PDF
+            </Link>
+            <button
+              onClick={() => setDeleteAmostraOpen(true)}
+              className="px-3 py-1.5 border border-red-200 text-red-600 text-sm rounded-md hover:bg-red-50"
+            >
+              Excluir
+            </button>
+          </div>
         </div>
       </div>
 
